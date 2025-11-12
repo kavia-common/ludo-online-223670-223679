@@ -1,82 +1,39 @@
 # Lightweight React Template for KAVIA
 
-This project provides a minimal React template with a clean, modern UI and minimal dependencies.
+Now extended with Ludo UI scaffolding, environment-based API configuration, and Ocean Professional theme.
 
 ## Features
 
-- **Lightweight**: No heavy UI frameworks - uses only vanilla CSS and React
-- **Modern UI**: Clean, responsive design with KAVIA brand styling
-- **Fast**: Minimal dependencies for quick loading times
-- **Simple**: Easy to understand and modify
+- Ocean Professional theme (blue & amber accents, clean modern look)
+- Lobby → Room → Board flow scaffold
+- Lightweight REST and optional WebSocket clients
+- Global state via Context + Reducer
+- CRA-compatible environment variables
 
-## Getting Started
+## Environment
 
-In the project directory, you can run:
+Copy `.env.example` to `.env` and adjust:
+- `REACT_APP_API_BASE` or `REACT_APP_BACKEND_URL`: REST API base (defaults to `http://localhost:3001`)
+- `REACT_APP_WS_URL`: optional websocket url (`ws://localhost:3001/ws`), otherwise derived
+- `REACT_APP_SITE_URL`: public site origin
 
-### `npm start`
+Note: CRA inlines environment variables at build time.
 
-Runs the app in development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Scripts
 
-### `npm test`
+- `npm start` – start dev server
+- `npm test` – run tests
+- `npm run build` – production build
 
-Launches the test runner in interactive watch mode.
+## Structure
 
-### `npm run build`
+- `src/config/env.js` – environment reader
+- `src/services/apiClient.js` – fetch-based REST client
+- `src/services/wsClient.js` – optional WebSocket client
+- `src/store/AppState.js` – global state
+- `src/components/` – Lobby, Room, Board
+- `src/theme.css` – theme tokens for Ocean Professional
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Notes
 
-## Customization
-
-### Colors
-
-The main brand colors are defined as CSS variables in `src/App.css`:
-
-```css
-:root {
-  --kavia-orange: #E87A41;
-  --kavia-dark: #1A1A1A;
-  --text-color: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.7);
-  --border-color: rgba(255, 255, 255, 0.1);
-}
-```
-
-### Components
-
-This template uses pure HTML/CSS components instead of a UI framework. You can find component styles in `src/App.css`. 
-
-Common components include:
-- Buttons (`.btn`, `.btn-large`)
-- Container (`.container`)
-- Navigation (`.navbar`)
-- Typography (`.title`, `.subtitle`, `.description`)
-
-## Learn More
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+This is an initial scaffold. Integrate real backend endpoints and ws events when available.

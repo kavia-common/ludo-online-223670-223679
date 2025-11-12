@@ -1,49 +1,53 @@
-import React, { useState, useEffect } from 'react';
-import logo from './logo.svg';
+import React, { useEffect, useState } from 'react';
 import './App.css';
+import './theme.css';
+import { AppStateProvider, useAppState } from './store/AppState';
+import Lobby from './components/Lobby';
+import Room from './components/Room';
+import Board from './components/Board';
 
 // PUBLIC_INTERFACE
 function App() {
-  const [theme, setTheme] = useState('light');
+  return (
+    <AppStateProvider>
+      <ThemedRoot />
+    </AppStateProvider>
+  );
+}
 
-  // Effect to apply theme to document element
+function ThemedRoot() {
+  const [theme, setTheme] = useState('light');
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
-  // PUBLIC_INTERFACE
-  const toggleTheme = () => {
-    setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
-  };
-
   return (
     <div className="App">
-      <header className="App-header">
-        <button 
-          className="theme-toggle" 
-          onClick={toggleTheme}
+      <header className="App-header" style={{ minHeight: 'auto', paddingBottom: 24 }}>
+        <button
+          className="theme-toggle"
+          onClick={() => setTheme((t) => (t === 'light' ? 'dark' : 'light'))}
           aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
         >
           {theme === 'light' ? '🌙 Dark' : '☀️ Light'}
         </button>
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
+        <h1 style={{ marginTop: 48 }}>Ludo Online</h1>
+        <p className="App-link" style={{ marginBottom: 24 }}>
+          Ocean Professional Theme
         </p>
-        <p>
-          Current theme: <strong>{theme}</strong>
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
       </header>
+      <main>
+        <MainView />
+      </main>
     </div>
   );
+}
+
+function MainView() {
+  const { state } = useAppState();
+  if (state.view === 'room') return <Room />;
+  if (state.view === 'board') return <Board />;
+  return <Lobby />;
 }
 
 export default App;
