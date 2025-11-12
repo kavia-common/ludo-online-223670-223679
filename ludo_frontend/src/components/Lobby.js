@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAppState } from "../store/AppState";
 import apiClient from "../services/apiClient";
 
@@ -11,6 +11,26 @@ export default function Lobby() {
   const [roomCode, setRoomCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
+  const [rooms, setRooms] = useState([]);
+
+  useEffect(() => {
+    let ignore = false;
+    (async () => {
+      try {
+        const list = await apiClient.getRooms().catch(() => []);
+        if (!ignore) setRooms(Array.isArray(list) ? list : []);
+      } catch {
+        // ignore load failure
+      }
+    })();
+    return () => { ignore = true; };
+  }, []);
+
+  const normalizeRoomResponse = (res, fallbackCode) => {
+    const code = res?.code || fallbackCode;
+    const players = res?.players || [];
+    return { code: code?.toString().toUpperCase(), players };
+  };
 
   const handleCreate = async () => {
     setErr("");
@@ -22,16 +42,22 @@ export default function Lobby() {
       setLoading(true);
       dispatch({ type: "SET_PLAYER_NAME", name: name.trim() });
 
-      // Attempt backend call if available; fallback to local mock
-      let code = "";
+      let resp;
       try {
-        const res = await apiClient.post("/rooms", { playerName: name.trim() });
-        code = res?.code;
-      } catch {
-        // fallback code
-        code = Math.random().toString(36).slice(2, 6).toUpperCase();
+        resp = await apiClient.createRoom({ playerName: name.trim() });
+      } catch (e) {
+        // fallback mock
+        resp = { code: Math.random().toString(36).slice(2, 6).toUpperCase(), players: [{ name: name.trim(), ready: false }] };
       }
-      dispatch({ type: "CREATE_ROOM", code });
+      const room = normalizeRoomResponse(resp, resp?.code);
+      // ensure current player present
+      if (!room.players.find(p => p.name === name.trim())) {
+        room.players = [...room.players, { name: name.trim(), ready: false }];
+      }
+      dispatch({ type: "CREATE_ROOM_SUCCESS", room });
+    } catch (e) {
+      setErr(e?.message || "Unable to create room");
+      dispatch({ type: "SET_ERROR", error: e?.message || "Unable to create room" });
     } finally {
       setLoading(false);
     }
@@ -51,17 +77,21 @@ export default function Lobby() {
       setLoading(true);
       dispatch({ type: "SET_PLAYER_NAME", name: name.trim() });
 
-      let players = [];
+      let resp;
       try {
-        const res = await apiClient.post(`/rooms/${roomCode.trim()}/join`, {
-          playerName: name.trim(),
-        });
-        players = res?.players || [];
-      } catch {
-        // mock two players
-        players = [{ name: name.trim(), ready: false }];
+        resp = await apiClient.joinRoom(roomCode.trim(), { playerName: name.trim() });
+      } catch (e) {
+        // fallback mock
+        resp = { code: roomCode.trim().toUpperCase(), players: [{ name: name.trim(), ready: false }] };
       }
-      dispatch({ type: "JOIN_ROOM", code: roomCode.trim().toUpperCase(), players });
+      const room = normalizeRoomResponse(resp, roomCode.trim());
+      if (!room.players.find(p => p.name === name.trim())) {
+        room.players = [...room.players, { name: name.trim(), ready: false }];
+      }
+      dispatch({ type: "JOIN_ROOM_SUCCESS", room });
+    } catch (e) {
+      setErr(e?.message || "Unable to join room");
+      dispatch({ type: "SET_ERROR", error: e?.message || "Unable to join room" });
     } finally {
       setLoading(false);
     }
@@ -86,7 +116,7 @@ export default function Lobby() {
         />
 
         <div className="space" />
-        <div className="row">
+        <div className="row" style={{ alignItems: "stretch" }}>
           <button className="btn" onClick={handleCreate} disabled={loading}>
             {loading ? "Creating..." : "Create Room"}
           </button>
@@ -103,6 +133,26 @@ export default function Lobby() {
             {loading ? "Joining..." : "Join Room"}
           </button>
         </div>
+
+        {rooms?.length ? (
+          <>
+            <div className="space" />
+            <div className="subtitle">Available rooms</div>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              {rooms.map((r) => (
+                <li key={r.code} className="row" style={{ justifyContent: "space-between", padding: "8px 0" }}>
+                  <div><strong>{r.name || "Room"}</strong> <span className="badge">{r.code}</span></div>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => { setRoomCode(r.code || ""); }}
+                  >
+                    Use Code
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : null}
 
         {err ? (
           <>

@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import { useAppState } from "../store/AppState";
+import apiClient from "../services/apiClient";
 
 /**
  * Simple board placeholder with Dice and TurnPanel
@@ -7,19 +8,39 @@ import { useAppState } from "../store/AppState";
 export default function Board() {
   const { state, dispatch } = useAppState();
   const players = state.board.players || [];
+  const [busy, setBusy] = useState(false);
 
-  const rollDice = () => {
-    const val = 1 + Math.floor(Math.random() * 6);
-    dispatch({ type: "SET_DICE", value: val });
+  const isYourTurn = useMemo(
+    () => state.playerName && state.board.currentTurn === state.playerName,
+    [state.playerName, state.board.currentTurn]
+  );
 
-    // Move to next player's turn (local mock)
-    const idx =
-      Math.max(
-        0,
-        players.findIndex((p) => p.name === state.board.currentTurn)
-      ) || 0;
-    const next = players[(idx + 1) % Math.max(1, players.length)];
-    if (next?.name) dispatch({ type: "NEXT_TURN", playerName: next.name });
+  const rollDice = async () => {
+    if (!isYourTurn || busy) return;
+    setBusy(true);
+    try {
+      const res = await apiClient.roll(state.room.code, { playerName: state.playerName });
+      const value = res?.value || res?.dice || res?.roll || null;
+      if (value != null) dispatch({ type: "SET_DICE", value });
+      if (res?.currentTurn) dispatch({ type: "NEXT_TURN", playerName: res.currentTurn });
+    } catch (e) {
+      dispatch({ type: "SET_ERROR", error: e?.message || "Failed to roll" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const moveToken = async (tokenId) => {
+    if (!isYourTurn || busy) return;
+    setBusy(true);
+    try {
+      const res = await apiClient.move(state.room.code, { playerName: state.playerName, tokenId });
+      if (res?.currentTurn) dispatch({ type: "NEXT_TURN", playerName: res.currentTurn });
+    } catch (e) {
+      dispatch({ type: "SET_ERROR", error: e?.message || "Failed to move token" });
+    } finally {
+      setBusy(false);
+    }
   };
 
   const exitToLobby = () => dispatch({ type: "LEAVE_ROOM" });
@@ -31,20 +52,26 @@ export default function Board() {
         <button className="btn" onClick={exitToLobby}>Exit</button>
       </div>
       <div className="space" />
+      {state.error ? (
+        <div className="card" style={{ padding: 12, border: "1px solid var(--color-error)" }}>
+          <div className="subtitle" style={{ color: "var(--color-error)" }}>{state.error}</div>
+        </div>
+      ) : null}
+      <div className="space" />
       <div className="card" style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 16 }}>
-        <LudoBoard />
+        <LudoBoard onSelectToken={moveToken} />
         <div>
-          <TurnPanel current={state.board.currentTurn} players={players} />
+          <TurnPanel current={state.board.currentTurn} players={players} yourTurn={isYourTurn} />
           <div className="space" />
-          <Dice value={state.board.diceValue} onRoll={rollDice} />
+          <Dice value={state.board.diceValue} onRoll={rollDice} disabled={!isYourTurn || busy} />
         </div>
       </div>
     </div>
   );
 }
 
-function LudoBoard() {
-  // Stylized placeholder representing a 3x3 with colored corners and center cross
+function LudoBoard({ onSelectToken }) {
+  // Stylized placeholder; clicking center simulates selecting a token
   return (
     <div
       aria-label="Ludo board"
@@ -56,7 +83,10 @@ function LudoBoard() {
           "conic-gradient(from 45deg, #ef4444 0 25%, #2563EB 0 50%, #10b981 0 75%, #F59E0B 0 100%)",
         position: "relative",
         boxShadow: "var(--shadow-md)",
+        cursor: "pointer",
       }}
+      onClick={() => onSelectToken && onSelectToken("token-1")}
+      title="Click to move a token (placeholder)"
     >
       <div
         style={{
@@ -82,7 +112,6 @@ function LudoBoard() {
             overflow: "hidden",
           }}
         >
-          {/* corners */}
           <div style={{ background: "#fee2e2" }} />
           <div style={{ background: "#e5e7eb" }} />
           <div style={{ background: "#dbeafe" }} />
@@ -98,7 +127,7 @@ function LudoBoard() {
   );
 }
 
-function TurnPanel({ current, players }) {
+function TurnPanel({ current, players, yourTurn }) {
   return (
     <div className="card" style={{ padding: 16 }}>
       <div className="title" style={{ fontSize: 18, marginBottom: 8 }}>
@@ -106,7 +135,7 @@ function TurnPanel({ current, players }) {
       </div>
       <div className="row" style={{ justifyContent: "space-between" }}>
         <strong>{current || "—"}</strong>
-        <div className="badge" aria-live="polite">Playing</div>
+        <div className="badge" aria-live="polite">{yourTurn ? "Your turn" : "Waiting..."}</div>
       </div>
 
       <div className="space" />
@@ -133,7 +162,7 @@ function TurnPanel({ current, players }) {
   );
 }
 
-function Dice({ value, onRoll }) {
+function Dice({ value, onRoll, disabled }) {
   return (
     <div className="card" style={{ padding: 16, textAlign: "center" }}>
       <div className="subtitle">Dice</div>
@@ -155,7 +184,9 @@ function Dice({ value, onRoll }) {
       >
         {value || "—"}
       </div>
-      <button className="btn" onClick={onRoll}>Roll</button>
+      <button className="btn" onClick={onRoll} disabled={disabled}>
+        {disabled ? "Wait…" : "Roll"}
+      </button>
     </div>
   );
 }

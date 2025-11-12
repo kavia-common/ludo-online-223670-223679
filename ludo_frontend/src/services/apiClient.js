@@ -44,8 +44,6 @@ class ApiClient {
       }
       return data;
     } catch (error) {
-      // Avoid leaking sensitive info
-      // Provide a normalized error
       if (!(error instanceof Error)) {
         const e = new Error("Network error");
         e.cause = error;
@@ -100,6 +98,101 @@ class ApiClient {
    */
   del(path) {
     return this._request(path, { method: "DELETE" });
+  }
+
+  // PUBLIC_INTERFACE
+  /**
+   * PUBLIC_INTERFACE
+   * getRooms - list available rooms
+   */
+  async getRooms() {
+    return this.get("/rooms");
+  }
+
+  // PUBLIC_INTERFACE
+  /**
+   * PUBLIC_INTERFACE
+   * createRoom - create a room
+   * @param {{name?: string, capacity?: number, private?: boolean, passcode?: string, playerName: string}} payload
+   */
+  async createRoom(payload) {
+    return this.post("/rooms", payload);
+  }
+
+  // PUBLIC_INTERFACE
+  /**
+   * PUBLIC_INTERFACE
+   * joinRoom - join a room by code
+   * @param {string} code
+   * @param {{playerName: string, passcode?: string}} payload
+   */
+  async joinRoom(code, payload) {
+    return this.post(`/rooms/${encodeURIComponent(code)}/join`, payload);
+  }
+
+  // PUBLIC_INTERFACE
+  /**
+   * PUBLIC_INTERFACE
+   * leaveRoom - leave a room by code
+   * @param {string} code
+   * @param {{playerName: string}} payload
+   */
+  async leaveRoom(code, payload) {
+    return this.post(`/rooms/${encodeURIComponent(code)}/leave`, payload);
+  }
+
+  // PUBLIC_INTERFACE
+  /**
+   * PUBLIC_INTERFACE
+   * setReady - set player's ready state in a room
+   * @param {string} code
+   * @param {{playerName: string, ready: boolean}} payload
+   */
+  async setReady(code, payload) {
+    return this.post(`/rooms/${encodeURIComponent(code)}/ready`, payload);
+  }
+
+  // PUBLIC_INTERFACE
+  /**
+   * PUBLIC_INTERFACE
+   * startGame - start game in a room
+   * @param {string} code
+   * @param {{playerName?: string}} payload
+   */
+  async startGame(code, payload = {}) {
+    return this.post(`/rooms/${encodeURIComponent(code)}/start`, payload);
+  }
+
+  // PUBLIC_INTERFACE
+  /**
+   * PUBLIC_INTERFACE
+   * getState - fetch current game/room state
+   * @param {string} code
+   */
+  async getState(code) {
+    return this.get(`/rooms/${encodeURIComponent(code)}/state`);
+  }
+
+  // PUBLIC_INTERFACE
+  /**
+   * PUBLIC_INTERFACE
+   * roll - perform a dice roll
+   * @param {string} code
+   * @param {{playerName: string}} payload
+   */
+  async roll(code, payload) {
+    return this.post(`/rooms/${encodeURIComponent(code)}/roll`, payload);
+  }
+
+  // PUBLIC_INTERFACE
+  /**
+   * PUBLIC_INTERFACE
+   * move - move a token after a roll
+   * @param {string} code
+   * @param {{playerName: string, tokenId: string|number}} payload
+   */
+  async move(code, payload) {
+    return this.post(`/rooms/${encodeURIComponent(code)}/move`, payload);
   }
 }
 
